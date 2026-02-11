@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\\AquariumData2026.Application\\AquariumData2026.Application.csproj" />
+    <ProjectReference Include="..\\AquariumData2026.Infrastructure\\AquariumData2026.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
