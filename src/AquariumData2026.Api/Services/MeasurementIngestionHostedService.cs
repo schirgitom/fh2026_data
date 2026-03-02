@@ -24,6 +24,7 @@ public sealed class MeasurementIngestionHostedService : BackgroundService
     {
         _logger.LogInformation("Measurement ingestion hosted service is starting.");
         await _ingestionService.StartAsync(stoppingToken).ConfigureAwait(false);
+        _logger.LogInformation("Measurement ingestion pipeline started. Waiting for shutdown signal.");
 
         try
         {
@@ -35,7 +36,9 @@ public sealed class MeasurementIngestionHostedService : BackgroundService
         }
         finally
         {
+            _logger.LogInformation("Stopping measurement ingestion pipeline from hosted service.");
             await _ingestionService.StopAsync(CancellationToken.None).ConfigureAwait(false);
+            _logger.LogInformation("Measurement ingestion hosted service stopped.");
         }
     }
 }

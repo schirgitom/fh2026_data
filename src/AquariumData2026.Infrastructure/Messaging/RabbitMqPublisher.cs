@@ -1,6 +1,5 @@
-using System.Text.Json;
+using System.Text;
 using AquariumData2026.Application.Abstractions;
-using AquariumData2026.Application.Models;
 using AquariumData2026.Infrastructure.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -25,26 +24,38 @@ public sealed class RabbitMqPublisher : IMessagePublisher, IDisposable
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public Task PublishAsync(MeasurementDto measurement, CancellationToken cancellationToken)
+    public Task PublishAsync(string jsonPayload, CancellationToken cancellationToken)
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(jsonPayload))
+            {
+                _logger.LogWarning("Skipping RabbitMQ publish because JSON payload is empty.");
+                return Task.CompletedTask;
+            }
+
             EnsureChannel();
 
-            var payload = JsonSerializer.SerializeToUtf8Bytes(measurement);
+            var payload = Encoding.UTF8.GetBytes(jsonPayload);
             var properties = _channel!.CreateBasicProperties();
             properties.Persistent = _options.Durable;
             properties.ContentType = "application/json";
+            properties.ContentEncoding = "utf-8";
 
             _channel.BasicPublish(
                 exchange: _options.ExchangeName,
                 routingKey: _options.RoutingKey,
                 basicProperties: properties,
                 body: payload);
+
+            _logger.LogDebug(
+                "Published JSON message to RabbitMQ exchange {Exchange} with routing key {RoutingKey}.",
+                _options.ExchangeName,
+                _options.RoutingKey);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to publish measurement to RabbitMQ.");
+            _logger.LogError(ex, "Failed to publish JSON message to RabbitMQ.");
         }
 
         return Task.CompletedTask;
@@ -68,6 +79,12 @@ public sealed class RabbitMqPublisher : IMessagePublisher, IDisposable
                 return;
             }
 
+            _logger.LogInformation(
+                "Opening RabbitMQ channel for {Host}:{Port} (vhost {VirtualHost}).",
+                _options.Host,
+                _options.Port,
+                _options.VirtualHost);
+
             _connection?.Dispose();
             _connection = CreateConnection();
             _channel = _connection.CreateModel();
@@ -76,6 +93,11 @@ public sealed class RabbitMqPublisher : IMessagePublisher, IDisposable
                 type: ExchangeType.Direct,
                 durable: _options.Durable,
                 autoDelete: false);
+
+            _logger.LogInformation(
+                "RabbitMQ exchange declared: {Exchange} (durable: {Durable}).",
+                _options.ExchangeName,
+                _options.Durable);
         }
     }
 

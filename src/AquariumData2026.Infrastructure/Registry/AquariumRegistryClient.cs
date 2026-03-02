@@ -28,12 +28,35 @@ public sealed class AquariumRegistryClient : IAquariumRegistryClient
 
     public async Task<IReadOnlyCollection<AquariumDto>> GetAquariumsAsync(CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.GetAsync(_options.AquariumsPath, cancellationToken)
+        var freshWaterAquariums = await GetAquariumsByPathAsync(_options.FreshWaterAquariumsPath, cancellationToken)
+            .ConfigureAwait(false);
+        var seaWaterAquariums = await GetAquariumsByPathAsync(_options.SeaWaterAquariumsPath, cancellationToken)
             .ConfigureAwait(false);
 
+        var mergedAquariums = freshWaterAquariums
+            .Concat(seaWaterAquariums)
+            .Where(aquarium => !string.IsNullOrWhiteSpace(aquarium.Id))
+            .GroupBy(aquarium => aquarium.Id, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .ToArray();
+
+        _logger.LogInformation(
+            "Loaded {AquariumCount} aquariums from registry API.",
+            mergedAquariums.Length);
+
+        return mergedAquariums;
+    }
+
+    private async Task<IReadOnlyCollection<AquariumDto>> GetAquariumsByPathAsync(
+        string path,
+        CancellationToken cancellationToken)
+    {
+        _logger.LogDebug("Requesting aquariums from registry path {Path}.", path);
+
+        using var response = await _httpClient.GetAsync(path, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogWarning("Registry API returned status {StatusCode}.", response.StatusCode);
+            _logger.LogWarning("Registry API returned status {StatusCode} for path {Path}.", response.StatusCode, path);
             return Array.Empty<AquariumDto>();
         }
 
@@ -41,6 +64,8 @@ public sealed class AquariumRegistryClient : IAquariumRegistryClient
             .ReadFromJsonAsync<IReadOnlyCollection<AquariumDto>>(cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
-        return aquariums ?? Array.Empty<AquariumDto>();
+        var result = aquariums ?? Array.Empty<AquariumDto>();
+        _logger.LogDebug("Registry path {Path} returned {AquariumCount} aquariums.", path, result.Count);
+        return result;
     }
 }

@@ -13,7 +13,13 @@ decodes binary payloads, and publishes normalized measurements to RabbitMQ.
 ## Configuration
 
 All configuration lives in `src/AquariumData2026.Api/appsettings.json`.
-For demonstration purposes, MQTT topics are hard-coded via the `Topics` section.
+By default, the service loads all aquariums from the central API (`RegistryApi`):
+
+- `RegistryApi:BaseUrl` (default `http://localhost:5011/`)
+- `RegistryApi:FreshWaterAquariumsPath`
+- `RegistryApi:SeaWaterAquariumsPath`
+
+MQTT topics are then generated from `Topics:TopicTemplate` using the loaded aquarium ids.
 
 ## Run
 

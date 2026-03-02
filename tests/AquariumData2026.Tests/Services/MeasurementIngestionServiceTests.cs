@@ -1,6 +1,7 @@
 using AquariumData2026.Application.Abstractions;
 using AquariumData2026.Application.Models;
 using AquariumData2026.Application.Services;
+using AquariumData2026.Domain.Model;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -21,7 +22,10 @@ public sealed class MeasurementIngestionServiceTests
 
         var aquariums = new[] { new AquariumDto("reef-1", "Reef") };
         var topics = new[] { new MqttTopic("aquariums/reef-1/measurements") };
-        var measurement = new MeasurementDto("reef-1", DateTimeOffset.UtcNow, Array.Empty<MetricValueDto>());
+        var measurement = new MeasurementDto(
+            "reef-1",
+            DateTimeOffset.UtcNow,
+            [new MetricValueDto(MetricType.WaterTemperature, 25.4m, "C")]);
 
         registryClient.Setup(client => client.GetAquariumsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(aquariums);
@@ -52,6 +56,13 @@ public sealed class MeasurementIngestionServiceTests
         Assert.NotNull(handler);
         await handler!(new MqttMessage("aquariums/reef-1/measurements", [1, 2, 3], DateTimeOffset.UtcNow), CancellationToken.None);
 
-        publisher.Verify(p => p.PublishAsync(measurement, It.IsAny<CancellationToken>()), Times.Once);
+        publisher.Verify(
+            p => p.PublishAsync(
+                It.Is<string>(payload =>
+                    payload.Contains("\"Metrics\":{", StringComparison.Ordinal)
+                    && payload.Contains("\"WaterTemperature\":{", StringComparison.Ordinal)
+                    && !payload.Contains("\"Metrics\":[", StringComparison.Ordinal)),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }

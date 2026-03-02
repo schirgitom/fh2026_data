@@ -7,6 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <ProjectReference Include="..\\AquariumData2026.Application\\AquariumData2026.Application.csproj" />
     <ProjectReference Include="..\\AquariumData2026.Infrastructure\\AquariumData2026.Infrastructure.csproj" />
   </ItemGroup>

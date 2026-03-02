@@ -56,6 +56,7 @@ public sealed class MqttSubscriber : IMqttSubscriber, IAsyncDisposable
         {
             _handler = onMessage;
             _topics = topics;
+            _logger.LogInformation("Subscribing to MQTT topics. Requested topic count: {TopicCount}.", topics.Count);
 
             if (!_started)
             {
@@ -117,6 +118,10 @@ public sealed class MqttSubscriber : IMqttSubscriber, IAsyncDisposable
         }
 
         var payload = args.ApplicationMessage.Payload.ToArray();
+        _logger.LogDebug(
+            "MQTT message received from topic {Topic} with payload size {PayloadSize} bytes.",
+            args.ApplicationMessage.Topic,
+            payload.Length);
         var message = new MqttMessage(
             args.ApplicationMessage.Topic,
             payload,
@@ -216,6 +221,13 @@ public sealed class MqttSubscriber : IMqttSubscriber, IAsyncDisposable
 
     private MqttClientOptions BuildClientOptions()
     {
+        _logger.LogInformation(
+            "Building MQTT client options for {Host}:{Port} (TLS: {UseTls}, KeepAliveSeconds: {KeepAliveSeconds}).",
+            _options.Host,
+            _options.Port,
+            _options.UseTls,
+            _options.KeepAliveSeconds);
+
         var clientOptionsBuilder = new MqttClientOptionsBuilder()
             .WithClientId(_options.ClientId)
             .WithTcpServer(_options.Host, _options.Port)

@@ -39,6 +39,7 @@ public sealed class TopicProvider : ITopicProvider
 
         if (!_options.TopicTemplate.Contains(AquariumIdToken, StringComparison.Ordinal))
         {
+            _logger.LogError("Configured topic template does not contain token {Token}: {Template}.", AquariumIdToken, _options.TopicTemplate);
             throw new InvalidOperationException(
                 $"Topic template must contain the token {AquariumIdToken}.");
         }
@@ -49,6 +50,7 @@ public sealed class TopicProvider : ITopicProvider
                 _options.TopicTemplate.Replace(AquariumIdToken, aquarium.Id, StringComparison.Ordinal)))
             .ToArray();
 
+        _logger.LogDebug("Resolved MQTT topic template {Template}.", _options.TopicTemplate);
         _logger.LogInformation("Resolved {TopicCount} MQTT topics from registry.", topics.Length);
         return Task.FromResult<IReadOnlyCollection<MqttTopic>>(topics);
     }
