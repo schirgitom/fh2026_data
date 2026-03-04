@@ -26,6 +26,14 @@ public sealed class AquariumRegistryClient : IAquariumRegistryClient
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        if (string.IsNullOrWhiteSpace(_options.ServiceKey))
+        {
+            throw new InvalidOperationException("RegistryApi:ServiceKey must be configured.");
+        }
+
+        _httpClient.DefaultRequestHeaders.Remove("X-Service-Key");
+        _httpClient.DefaultRequestHeaders.Add("X-Service-Key", _options.ServiceKey);
         _retryPolicy = BuildRetryPolicy();
     }
 

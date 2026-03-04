@@ -1,5 +1,6 @@
 using AquariumData2026.Api.Services;
 using AquariumData2026.Api.HealthChecks;
+using AquariumData2026.Application.Abstractions;
 using AquariumData2026.Application.DependencyInjection;
 using AquariumData2026.Infrastructure.DependencyInjection;
 using Serilog;
@@ -16,6 +17,16 @@ try
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext());
+    
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("FrontendDev", policy =>
+        {
+            policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+    });
 
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
@@ -37,6 +48,12 @@ try
     app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
     {
         Predicate = registration => registration.Tags.Contains("ready")
+    });
+    app.MapGet("/metrics", (IDeviceLastSeenTracker deviceLastSeenTracker) =>
+    {
+        var snapshot = deviceLastSeenTracker.GetSnapshot();
+        var metricsPayload = PrometheusMetricsFormatter.BuildLastSeenMetrics(snapshot);
+        return Results.Text(metricsPayload, "text/plain; version=0.0.4; charset=utf-8");
     });
     app.MapGet("/", () => Results.Ok("Aquarium data ingestion service running."));
 

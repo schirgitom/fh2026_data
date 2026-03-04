@@ -28,8 +28,15 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddHttpClient<IAquariumRegistryClient, AquariumRegistryClient>((provider, client) =>
         {
             var options = provider.GetRequiredService<Microsoft.Extensions.Options.IOptions<RegistryApiOptions>>().Value;
+            if (string.IsNullOrWhiteSpace(options.ServiceKey))
+            {
+                throw new InvalidOperationException("RegistryApi:ServiceKey must be configured.");
+            }
+
             client.BaseAddress = new Uri(options.BaseUrl);
             client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+            client.DefaultRequestHeaders.Remove("X-Service-Key");
+            client.DefaultRequestHeaders.Add("X-Service-Key", options.ServiceKey);
         });
 
         services.AddSingleton<ITopicProvider, TopicProvider>();

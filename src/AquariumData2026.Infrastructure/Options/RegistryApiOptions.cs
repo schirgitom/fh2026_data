@@ -11,4 +11,5 @@ public sealed class RegistryApiOptions
     public string FreshWaterAquariumsPath { get; init; } = "/api/FreshWaterAquarium";
     public string SeaWaterAquariumsPath { get; init; } = "/api/SeaWaterAquarium";
     public int TimeoutSeconds { get; init; } = 10;
+    public string ServiceKey { get; init; } = string.Empty;
 }

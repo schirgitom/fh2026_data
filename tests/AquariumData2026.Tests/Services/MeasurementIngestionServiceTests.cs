@@ -18,6 +18,7 @@ public sealed class MeasurementIngestionServiceTests
         var mqttSubscriber = new Mock<IMqttSubscriber>();
         var decoder = new Mock<IMeasurementDecoder>();
         var publisher = new Mock<IMessagePublisher>();
+        var deviceLastSeenTracker = new Mock<IDeviceLastSeenTracker>();
         var logger = new Mock<ILogger<MeasurementIngestionService>>();
 
         var aquariums = new[] { new AquariumDto("reef-1", "Reef") };
@@ -49,6 +50,7 @@ public sealed class MeasurementIngestionServiceTests
             mqttSubscriber.Object,
             decoder.Object,
             publisher.Object,
+            deviceLastSeenTracker.Object,
             logger.Object);
 
         await service.StartAsync(CancellationToken.None);
@@ -63,6 +65,10 @@ public sealed class MeasurementIngestionServiceTests
                     && payload.Contains("\"WaterTemperature\":{", StringComparison.Ordinal)
                     && !payload.Contains("\"Metrics\":[", StringComparison.Ordinal)),
                 It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        deviceLastSeenTracker.Verify(
+            tracker => tracker.Record("reef-1", measurement.Timestamp),
             Times.Once);
     }
 }

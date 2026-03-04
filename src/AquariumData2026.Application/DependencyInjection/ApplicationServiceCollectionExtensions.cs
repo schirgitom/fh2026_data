@@ -11,6 +11,7 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
+        services.AddSingleton<IDeviceLastSeenTracker, DeviceLastSeenTracker>();
         services.AddSingleton<IMeasurementIngestionService, MeasurementIngestionService>();
         return services;
     }

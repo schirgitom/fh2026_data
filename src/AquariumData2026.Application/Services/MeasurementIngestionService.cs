@@ -16,6 +16,7 @@ public sealed class MeasurementIngestionService : IMeasurementIngestionService
     private readonly IMqttSubscriber _mqttSubscriber;
     private readonly IMeasurementDecoder _decoder;
     private readonly IMessagePublisher _publisher;
+    private readonly IDeviceLastSeenTracker _deviceLastSeenTracker;
     private readonly ILogger<MeasurementIngestionService> _logger;
     private int _started;
 
@@ -25,6 +26,7 @@ public sealed class MeasurementIngestionService : IMeasurementIngestionService
         IMqttSubscriber mqttSubscriber,
         IMeasurementDecoder decoder,
         IMessagePublisher publisher,
+        IDeviceLastSeenTracker deviceLastSeenTracker,
         ILogger<MeasurementIngestionService> logger)
     {
         _registryClient = registryClient ?? throw new ArgumentNullException(nameof(registryClient));
@@ -32,6 +34,7 @@ public sealed class MeasurementIngestionService : IMeasurementIngestionService
         _mqttSubscriber = mqttSubscriber ?? throw new ArgumentNullException(nameof(mqttSubscriber));
         _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
         _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
+        _deviceLastSeenTracker = deviceLastSeenTracker ?? throw new ArgumentNullException(nameof(deviceLastSeenTracker));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -94,6 +97,7 @@ public sealed class MeasurementIngestionService : IMeasurementIngestionService
                 message.Payload.Length);
 
             var measurement = _decoder.Decode(message);
+            _deviceLastSeenTracker.Record(measurement.AquariumId, measurement.Timestamp);
             var metricsObject = measurement.Metrics.ToDictionary(
                 metric => metric.Type.ToString(),
                 metric => new MetricPayloadValue(metric.Value, metric.Unit));

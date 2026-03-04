@@ -12,13 +12,16 @@ public sealed class LiveRegistryApiTests
     public async Task RegistryApi_FreshAndSeaWaterEndpoints_AreReachableAndReturnJsonArrays()
     {
         var baseUrl = Environment.GetEnvironmentVariable("LIVE_REGISTRY_BASE_URL");
+        var serviceKey = Environment.GetEnvironmentVariable("LIVE_REGISTRY_SERVICE_KEY");
         var baseUri = string.IsNullOrWhiteSpace(baseUrl) ? DefaultBaseUri : new Uri(baseUrl);
+        var effectiveServiceKey = string.IsNullOrWhiteSpace(serviceKey) ? "set-me" : serviceKey;
 
         using var httpClient = new HttpClient
         {
             BaseAddress = baseUri,
             Timeout = TimeSpan.FromSeconds(5)
         };
+        httpClient.DefaultRequestHeaders.Add("X-Service-Key", effectiveServiceKey);
 
         await AssertArrayResponseAsync(httpClient, "/api/FreshWaterAquarium");
         await AssertArrayResponseAsync(httpClient, "/api/SeaWaterAquarium");
