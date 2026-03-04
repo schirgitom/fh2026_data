@@ -27,6 +27,11 @@ MQTT topics are then generated from `Topics:TopicTemplate` using the loaded aqua
 dotnet run --project src/AquariumData2026.Api
 ```
 
+## Metrics
+
+- The service exposes Prometheus metrics at `GET /metrics`.
+- A ready-to-use Prometheus config is available at `prometheus.yml` (scrapes `localhost:37820`).
+
 ## Documentation
 
 - `docs/Architecture.md`

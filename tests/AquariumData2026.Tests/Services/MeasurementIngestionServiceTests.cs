@@ -19,6 +19,7 @@ public sealed class MeasurementIngestionServiceTests
         var decoder = new Mock<IMeasurementDecoder>();
         var publisher = new Mock<IMessagePublisher>();
         var deviceLastSeenTracker = new Mock<IDeviceLastSeenTracker>();
+        var ingestionMetricsTracker = new Mock<IIngestionMetricsTracker>();
         var logger = new Mock<ILogger<MeasurementIngestionService>>();
 
         var aquariums = new[] { new AquariumDto("reef-1", "Reef") };
@@ -51,6 +52,7 @@ public sealed class MeasurementIngestionServiceTests
             decoder.Object,
             publisher.Object,
             deviceLastSeenTracker.Object,
+            ingestionMetricsTracker.Object,
             logger.Object);
 
         await service.StartAsync(CancellationToken.None);

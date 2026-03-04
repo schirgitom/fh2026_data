@@ -49,10 +49,11 @@ try
     {
         Predicate = registration => registration.Tags.Contains("ready")
     });
-    app.MapGet("/metrics", (IDeviceLastSeenTracker deviceLastSeenTracker) =>
+    app.MapGet("/metrics", (IDeviceLastSeenTracker deviceLastSeenTracker, IIngestionMetricsTracker ingestionMetricsTracker) =>
     {
-        var snapshot = deviceLastSeenTracker.GetSnapshot();
-        var metricsPayload = PrometheusMetricsFormatter.BuildLastSeenMetrics(snapshot);
+        var deviceSnapshot = deviceLastSeenTracker.GetSnapshot();
+        var ingestionSnapshot = ingestionMetricsTracker.GetSnapshot();
+        var metricsPayload = PrometheusMetricsFormatter.BuildMetrics(deviceSnapshot, ingestionSnapshot, DateTimeOffset.UtcNow);
         return Results.Text(metricsPayload, "text/plain; version=0.0.4; charset=utf-8");
     });
     app.MapGet("/", () => Results.Ok("Aquarium data ingestion service running."));

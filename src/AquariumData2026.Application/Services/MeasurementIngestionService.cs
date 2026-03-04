@@ -17,6 +17,7 @@ public sealed class MeasurementIngestionService : IMeasurementIngestionService
     private readonly IMeasurementDecoder _decoder;
     private readonly IMessagePublisher _publisher;
     private readonly IDeviceLastSeenTracker _deviceLastSeenTracker;
+    private readonly IIngestionMetricsTracker _ingestionMetricsTracker;
     private readonly ILogger<MeasurementIngestionService> _logger;
     private int _started;
 
@@ -27,6 +28,7 @@ public sealed class MeasurementIngestionService : IMeasurementIngestionService
         IMeasurementDecoder decoder,
         IMessagePublisher publisher,
         IDeviceLastSeenTracker deviceLastSeenTracker,
+        IIngestionMetricsTracker ingestionMetricsTracker,
         ILogger<MeasurementIngestionService> logger)
     {
         _registryClient = registryClient ?? throw new ArgumentNullException(nameof(registryClient));
@@ -35,6 +37,7 @@ public sealed class MeasurementIngestionService : IMeasurementIngestionService
         _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
         _publisher = publisher ?? throw new ArgumentNullException(nameof(publisher));
         _deviceLastSeenTracker = deviceLastSeenTracker ?? throw new ArgumentNullException(nameof(deviceLastSeenTracker));
+        _ingestionMetricsTracker = ingestionMetricsTracker ?? throw new ArgumentNullException(nameof(ingestionMetricsTracker));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -89,6 +92,8 @@ public sealed class MeasurementIngestionService : IMeasurementIngestionService
 
     private async Task HandleMessageAsync(MqttMessage message, CancellationToken cancellationToken)
     {
+        _ingestionMetricsTracker.RecordMessageReceived(message.Payload.Length, message.ReceivedAt);
+
         try
         {
             _logger.LogDebug(
@@ -97,6 +102,7 @@ public sealed class MeasurementIngestionService : IMeasurementIngestionService
                 message.Payload.Length);
 
             var measurement = _decoder.Decode(message);
+            _ingestionMetricsTracker.RecordMessageDecoded();
             _deviceLastSeenTracker.Record(measurement.AquariumId, measurement.Timestamp);
             var metricsObject = measurement.Metrics.ToDictionary(
                 metric => metric.Type.ToString(),
@@ -109,6 +115,7 @@ public sealed class MeasurementIngestionService : IMeasurementIngestionService
 
             var jsonPayload = JsonSerializer.Serialize(payload);
             await _publisher.PublishAsync(jsonPayload, cancellationToken).ConfigureAwait(false);
+            _ingestionMetricsTracker.RecordMessagePublished(DateTimeOffset.UtcNow);
             _logger.LogDebug(
                 "Published measurement for aquarium {AquariumId} with {MetricCount} metrics.",
                 measurement.AquariumId,
@@ -116,6 +123,7 @@ public sealed class MeasurementIngestionService : IMeasurementIngestionService
         }
         catch (Exception ex)
         {
+            _ingestionMetricsTracker.RecordMessageFailed();
             _logger.LogError(ex, "Failed to process MQTT message from topic {Topic}.", message.Topic);
         }
     }
